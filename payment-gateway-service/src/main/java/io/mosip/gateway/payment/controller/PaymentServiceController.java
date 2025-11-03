@@ -39,9 +39,22 @@ public class PaymentServiceController {
 	@Operation(summary = "checkPrnStatus", description = "Fetch the status of a given prn", tags = "payment-service-controller")
 	public ResponseEntity<MainMosipResponseDTO<CheckPRNStatusResultDTO>> checkPrnStatus(
 			@Valid @RequestBody(required = false) CheckPRNStatusRequestDTO prnStatusRequestDTO) throws Exception{
-		
-		return ResponseEntity.status(HttpStatus.OK)
-				.body(prnService.getPrnStatus(prnStatusRequestDTO));
+
+		MainMosipResponseDTO<CheckPRNStatusResultDTO> response = prnService.getPrnStatus(prnStatusRequestDTO);
+        if (response.getErrors() != null && !response.getErrors().isEmpty()) {
+        String errorCode = response.getErrors().get(0).getErrorCode();
+
+        if ("NPG_PARAM_MISSING".equalsIgnoreCase(errorCode)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        } else if ("NPG_UNKNOWN_EXCEPTION".equalsIgnoreCase(errorCode)
+                || "SERVICE_UNAVAILABLE".equalsIgnoreCase(errorCode)) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(response);
+        }
+     }
+
+      return ResponseEntity.ok(response);
+		// return ResponseEntity.status(HttpStatus.OK)
+		// 		.body(prnService.getPrnStatus(prnStatusRequestDTO));
 	}
 	
 	@PostMapping("/generatePrn")
